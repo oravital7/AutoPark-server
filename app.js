@@ -9,7 +9,6 @@ app.use(bodyParser.json())
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-
 const parksRouth = require('./routes/parks');
 
 app.use(parksRouth);
