@@ -15,28 +15,30 @@ exports.postNewPark = (req, res, next) => {
     console.log(req.body);
     const park = new parkModel(req.body);
 
+    var BreakException = {};
+
     db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).get().then(snapshot => {
-        let isInDb = false;
+        try {
+            snapshot.forEach(doc => {
+                data = doc.data();
+                
+                const currPoint = new GeoPoint(data.geom._latitude, data.geom._longitude);
+                const distInKm = park.geom.distanceTo(currPoint, true);
 
-        snapshot.forEach(doc => {
-            data = doc.data();
-            
-            const currPoint = new GeoPoint(data.geom._latitude, data.geom._longitude);
-            const distInKm = park.geom.distanceTo(currPoint, true);
-
-            if (distInKm < RADIUS_THRESHOLD_KM)
-            {
-                // TODO: Update parking time in db
-                console.log("Parks already in db");
-                isInDb = true;
-                return true;
-            }
-           // console.log("dist [", distInMeter, "]");
-           // console.log(doc.id, '=>', doc.data());
-        });
-
-        if (isInDb)
+                if (distInKm < RADIUS_THRESHOLD_KM)
+                {
+                    // TODO: Update parking time in db
+                    console.log("Parks already in db");
+                    throw BreakException;
+                }
+            // console.log("dist [", distInMeter, "]");
+            // console.log(doc.id, '=>', doc.data());
+            });
+        } catch(e) {
+            console.log("a", e);
             return res.status(202).send();
+        }
+
         
         db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).doc().set({
             date: admin.firestore.Timestamp.now(),
