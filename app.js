@@ -14,9 +14,10 @@ const parksRouth = require('./routes/parks');
 app.use(parksRouth);
 
   app.use((req, res, next) => {
-    console.log("Hi i");
-    next();
-    // res.redirect('/');
+    console.log("404");
+   // next();
+    res.redirect('/');
+    res.sendStatus(404).send("404");
   });
 
 

@@ -6,7 +6,7 @@ const admin = require("firebase-admin"); // TODO: Move google Geopoint
 
 
 exports.postNewPark = (req, res, next) => {
-    const RADIUS_THRESHOLD_KM = 0.007; 
+    const RADIUS_THRESHOLD_KM = 0.007; // 7 meter threshold
     const MAIN_COLLECTION = 'parking';
 
     console.log("In postNewPark");
@@ -23,7 +23,6 @@ exports.postNewPark = (req, res, next) => {
             
             const currPoint = new GeoPoint(data.geom._latitude, data.geom._longitude);
             const distInKm = park.geom.distanceTo(currPoint, true);
-            console.log("dist: ", distInKm);
 
             if (distInKm < RADIUS_THRESHOLD_KM)
             {
@@ -39,9 +38,8 @@ exports.postNewPark = (req, res, next) => {
         if (isInDb)
             return res.status(202).send();
         
-        // TODO: Add 'pointToAdd' as new parking
         db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).doc().set({
-            date: Date.now(),
+            date: admin.firestore.Timestamp.now(),
             geom: new admin.firestore.GeoPoint(park.geom.latitude(), park.geom.longitude()),
             id: -1,
             size: park.size
