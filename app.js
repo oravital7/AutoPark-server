@@ -16,8 +16,8 @@ app.use(parksRouth);
   app.use((req, res, next) => {
     console.log("404");
    // next();
-    res.redirect('/');
-    res.sendStatus(404).send("404");
+  //  res.redirect('/');
+    res.sendStatus(404).send();
   });
 
 

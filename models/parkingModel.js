@@ -7,6 +7,7 @@ class Park {
         this.city = body.city;
         this.geom = new GeoPoint(body.Geom._latitude, body.Geom._longitude);
         this.size = 40; // TODO: Change to real size
+        this.userId = body.userId;
     }
 }
 
