@@ -4,16 +4,10 @@ const parkModel = require('../models/parkingModel');
 
 const admin = require("firebase-admin");
 
+const MAIN_COLLECTION = 'parking';
 
-exports.postNewPark = (req, res, next) => {
+isParkInDb = (park, cb) => {
     const RADIUS_THRESHOLD_KM = 0.007; // 7 meter threshold
-    const MAIN_COLLECTION = 'parking';
-
-    console.log("In postNewPark");
-    console.log(req.body);
-    const park = new parkModel(req.body);
-
-
     // Check if park already in db
     db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).get().then(snapshot => {
         var BreakException = {};
@@ -27,13 +21,44 @@ exports.postNewPark = (req, res, next) => {
 
                 if (distInKm < RADIUS_THRESHOLD_KM) {
                     // TODO: Update parking time in db
-                    console.log("Parks already in db");
+                    cb(doc.id);
                     throw BreakException;
                 }
                 // console.log("dist [", distInMeter, "]");
-                // console.log(doc.id, '=>', doc.data());
             });
-        } catch (e) {
+        } catch (err) {
+            return; // Parks in db.
+        }
+
+        return cb();
+
+    }).catch(err => {
+        return cb();
+    });
+}
+
+exports.postParkIfExist = (req, res, next) => {
+    console.log("in getParkIfExist");
+    console.log(req.body);
+    const park = new parkModel(req.body);
+    console.log("out getParkIfExist");
+
+    isParkInDb(park, (parkId) => {
+        console.log("ParkId:", parkId);
+        res.json({id : parkId});
+    });
+}
+
+exports.postNewPark = (req, res, next) => {
+    console.log("In postNewPark");
+    console.log(req.body);
+    const park = new parkModel(req.body);
+
+    // Check if park already in db
+    isParkInDb(park, (parkId) => {
+        if (parkId)
+        {
+            console.log("Parks already in db ", parkId);
             return res.status(202).send(); // Parks in db.
         }
 
@@ -50,9 +75,28 @@ exports.postNewPark = (req, res, next) => {
             console.log("Failed to add park", err);
             return res.status(500).send(err);
         });
-
-    }).catch(err => {
-        console.log(err);
-        return res.status(500).send(err);
     });
+
+    // db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).get().then(snapshot => {
+    //     var BreakException = {};
+
+    //     try {
+    //         snapshot.forEach(doc => {
+    //             data = doc.data();
+
+    //             const currPoint = new GeoPoint(data.geom._latitude, data.geom._longitude);
+    //             const distInKm = park.geom.distanceTo(currPoint, true);
+
+    //             if (distInKm < RADIUS_THRESHOLD_KM) {
+    //                 // TODO: Update parking time in db
+    //                 console.log("Parks already in db");
+    //                 throw BreakException;
+    //             }
+    //             // console.log("dist [", distInMeter, "]");
+    //             // console.log(doc.id, '=>', doc.data());
+    //         });
+    //     } catch (e) {
+    //         return res.status(202).send(); // Parks in db.
+    //     }
+
 }
