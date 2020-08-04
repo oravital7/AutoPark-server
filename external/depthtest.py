@@ -75,6 +75,8 @@ vmax = np.percentile(disp_resized_np, 95)
 
 # plt.figure(figsize=(50, 30))
 plt.imsave("output-test.png", disp_resized_np, cmap='magma', vmax=vmax)
+
+
 # plt.imshow(disp_resized_np, cmap='magma', vmax=vmax)
 # plt.axis('off')
 # plt.savefig("output-test.png")
