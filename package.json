@@ -15,7 +15,8 @@
     "express": "^4.16.3",
     "express-handlebars": "^3.0.0",
     "firebase-admin": "^8.12.1",
-    "geopoint": "^1.0.1"
+    "geopoint": "^1.0.1",
+    "uuid": "^8.3.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"

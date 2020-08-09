@@ -5,6 +5,8 @@ import numpy as np
 import PIL.Image as pil
 import matplotlib.pyplot as plt
 import sys
+import base64
+
 
 import torch
 from torchvision import transforms
@@ -12,7 +14,7 @@ from torchvision import transforms
 import networks
 from datetime import datetime
 
-
+print("in depth")
 model_name = "mono_640x192"
 
 ROOT_DIR = os.path.join("external", "logs")
@@ -37,6 +39,8 @@ encoder.eval()
 depth_decoder.eval()
 
 image_path = sys.argv[1]
+centerPoint = sys.argv[2]
+
 
 input_image = pil.open(image_path).convert('RGB')
 original_width, original_height = input_image.size

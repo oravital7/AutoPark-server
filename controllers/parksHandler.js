@@ -1,6 +1,11 @@
+const fs = require('fs');
+const path = require('path');
+const {v4: uuidv4} = require('uuid');
 const db = require('../utils/firestore');
 const GeoPoint = require('geopoint');
 const parkModel = require('../models/parkingModel');
+
+
 
 const admin = require("firebase-admin");
 
@@ -39,7 +44,7 @@ isParkInDb = (park, cb) => {
 
 exports.postParkIfExist = (req, res, next) => {
     console.log("in getParkIfExist");
-    console.log(req.body);
+    // console.log(req.body);
     const park = new parkModel(req.body);
     console.log("out getParkIfExist");
 
@@ -51,7 +56,7 @@ exports.postParkIfExist = (req, res, next) => {
 
 exports.postNewPark = (req, res, next) => {
     console.log("In postNewPark");
-    console.log(req.body);
+     console.log(req.body);
     const park = new parkModel(req.body);
 
     // Check if park already in db
@@ -103,15 +108,20 @@ exports.postNewPark = (req, res, next) => {
 
 exports.postNewParkImage = (req, res, next) => {
     console.log("postNewParkImage");
+    const park = new parkModel(req.body);
+    // imagePath =  "temp\\test_image.jpg";
+    imagePath = path.join("temp","process_"+uuidv4()+".png");
+    //decoding imagey
 
-    imagePath =  "temp\\test_image.jpg";
+    let buff = new Buffer(park.image, 'base64');
+    fs.writeFileSync(imagePath, buff);
     // Save in temp with unique id
 
     //
-
+    
     const spawn = require('child_process').spawn;
-    const ls = spawn('python', ['external\\depthtest.py', imagePath]);
-
+    const ls = spawn('python', [path.join("external","depthtest.py"), imagePath, park.centerPoint]);
+    console.log("printing data");
     ls.stdout.on('data', (data) => {
         console.log(`stdout: ${data}`);
     });
