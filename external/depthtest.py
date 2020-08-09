@@ -5,21 +5,12 @@ import numpy as np
 import PIL.Image as pil
 import matplotlib.pyplot as plt
 import sys
-import base64
-
-
 import torch
 from torchvision import transforms
 
 import networks
-from datetime import datetime
-
-print("in depth")
-model_name = "mono_640x192"
 
 ROOT_DIR = os.path.join("external", "logs")
-
-print(len(sys.argv), sys.argv[0])
 
 encoder_path = os.path.join(ROOT_DIR, "encoder.pth")
 depth_decoder_path = os.path.join(ROOT_DIR, "depth.pth")
@@ -39,8 +30,7 @@ encoder.eval()
 depth_decoder.eval()
 
 image_path = sys.argv[1]
-centerPoint = sys.argv[2]
-
+centerPoint = (int(float(sys.argv[2])), int(float(sys.argv[3])))
 
 input_image = pil.open(image_path).convert('RGB')
 original_width, original_height = input_image.size
@@ -51,21 +41,24 @@ input_image_resized = input_image.resize((feed_width, feed_height), pil.LANCZOS)
 
 input_image_pytorch = transforms.ToTensor()(input_image_resized).unsqueeze(0)
 
-
 with torch.no_grad():
     features = encoder(input_image_pytorch)
     outputs = depth_decoder(features)
 
 disp = outputs[("disp", 0)]
 
-
 disp_resized = torch.nn.functional.interpolate(disp,
-    (original_height, original_width), mode="bilinear", align_corners=False)
-
+                                               (original_height, original_width), mode="bilinear", align_corners=False)
 
 # Saving colormapped depth image
 disp_resized_np = disp_resized.squeeze().cpu().numpy()
 vmax = np.percentile(disp_resized_np, 95)
+
+if centerPoint[0] < original_width and centerPoint[1] < original_height:
+    print(disp_resized_np[centerPoint[0], centerPoint[1]])
+else:
+    print(-1)
+
 # print(vmax)
 # print(original_width, original_height)
 # print(disp_resized_np.shape)
@@ -79,7 +72,6 @@ vmax = np.percentile(disp_resized_np, 95)
 
 # plt.figure(figsize=(50, 30))
 plt.imsave("output-test.png", disp_resized_np, cmap='magma', vmax=vmax)
-
 
 # plt.imshow(disp_resized_np, cmap='magma', vmax=vmax)
 # plt.axis('off')
