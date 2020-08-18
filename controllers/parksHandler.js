@@ -70,7 +70,6 @@ exports.postNewPark = (req, res, next) => {
         imagePath = path.join("temp", "process_" + uuidv4() + ".png");
         let buff = new Buffer(park.image, 'base64');
         fs.writeFileSync(imagePath, buff);
-
         const spawn = require('child_process').spawn;
         const ls = spawn('python', [path.join("external", "depthtest.py"), imagePath, park.centerPoint.x,
             park.centerPoint.y]);
@@ -92,6 +91,7 @@ exports.postNewPark = (req, res, next) => {
                     date: admin.firestore.Timestamp.now(),
                     geom: new admin.firestore.GeoPoint(park.geom.latitude(), park.geom.longitude()),
                     id: park.userId,
+                    image: park.image,
                     size: park.sizePercentage
                 }).then(ref => {
                     console.log('Added document with ID: ', ref.id);
@@ -105,10 +105,12 @@ exports.postNewPark = (req, res, next) => {
                 console.log("Failed caclculate depth");
             }
         });
+      
 
         ls.stderr.on('data', (data) => {
             console.log(`stderr: ${data}`);
         });
+
 
         ls.on('close', (code) => {
             console.log(`child process exited with code ${code}`);
