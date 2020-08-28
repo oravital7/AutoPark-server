@@ -21,13 +21,12 @@ isParkInDb = (park, cb) => {
         try {
             snapshot.forEach(doc => {
                 data = doc.data();
-
                 const currPoint = new GeoPoint(data.geom._latitude, data.geom._longitude);
                 const distInKm = park.geom.distanceTo(currPoint, true);
 
                 if (distInKm < RADIUS_THRESHOLD_KM) {
                     // TODO: Update parking time in db
-                    cb(doc.id);
+                    cb(doc);
                     throw BreakException;
                 }
                 // console.log("dist [", distInMeter, "]");
@@ -44,14 +43,17 @@ isParkInDb = (park, cb) => {
 }
 
 exports.postParkIfExist = (req, res, next) => {
-    console.log("in getParkIfExist");
+    console.log("in postParkIfExist");
     // console.log(req.body);
     const park = new parkModel(req.body);
-    console.log("out getParkIfExist");
 
-    isParkInDb(park, (parkId) => {
-        console.log("ParkId:", parkId);
-        res.json({ id: parkId });
+    isParkInDb(park, (doc) => {
+        var parkingId = undefined;
+        if (doc)
+            parkingId = doc.id;
+
+        console.log("ParkId:", parkingId);
+        res.json({ id: parkingId });
     });
 }
 
@@ -61,60 +63,113 @@ exports.postNewPark = (req, res, next) => {
     const park = new parkModel(req.body);
 
     // Check if park already in db
-    isParkInDb(park, (parkId) => {
-        if (parkId) {
-            console.log("Parks already in db ", parkId);
+    isParkInDb(park, (doc) => {
+        if (doc) {
+            console.log("Parks already in db ", doc,id);
             return res.status(202).send(); // Parks in db.
         }
 
         imagePath = path.join("temp", "process_" + uuidv4() + ".png");
+
         let buff = new Buffer(park.image, 'base64');
         fs.writeFileSync(imagePath, buff);
-        const spawn = require('child_process').spawn;
-        const ls = spawn('python', [path.join("external", "depthtest.py"), imagePath, park.centerPoint.x,
-            park.centerPoint.y]);
+        // const spawn = require('child_process').spawn;
+        // const ls = spawn('python', [path.join("external", "depthtest.py"), imagePath, park.centerPoint.x,
+        //     park.centerPoint.y]);
         console.log("printing data");
-        ls.stdout.on('data', (data) => {
-            fs.unlinkSync(imagePath); // remove image
-
-            console.log(`stdout: ${data}`);
+        
+        data = 0.22;
+        console.log(`stdout: ${data}`);
             
-            let parkDistColorFactor = Number(data);
-            if (parkDistColorFactor != -1) {
-                let parkDistance = parkDistColorFactor * 51; // Baseline 0.51 cm
-                console.log("Dist:", parkDistance,"park.sizePercentage", park.sizePercentage);
-                park.sizePercentage *= CMtoMM(parkDistance);
-                console.log("Python finish size:", park.sizePercentage);
+        let parkDistColorFactor = Number(data);
+        if (parkDistColorFactor != -1) {
+            let parkDistance = parkDistColorFactor * 51; // Baseline 0.51 cm
+            console.log("Dist:", parkDistance,"park.sizePercentage", park.sizePercentage);
+            park.sizePercentage *= CMtoMM(parkDistance);
+            console.log("Python finish size:", park.sizePercentage);
 
-                // Add park to db
-                db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).doc().set({
-                    date: admin.firestore.Timestamp.now(),
-                    geom: new admin.firestore.GeoPoint(park.geom.latitude(), park.geom.longitude()),
-                    id: park.userId,
-                    image: park.image,
-                    size: park.sizePercentage
-                }).then(ref => {
-                    console.log('Added document with ID: ', ref.id);
-                    return res.status(200).send();
-                }).catch(err => {
-                    console.log("Failed to add park", err);
-                    return res.status(500).send(err);
-                });
-            }
-            else {
-                console.log("Failed caclculate depth");
-            }
-        });
+            // Add park to db
+            db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).doc().set({
+                date: admin.firestore.Timestamp.now(),
+                geom: new admin.firestore.GeoPoint(park.geom.latitude(), park.geom.longitude()),
+                id: park.userId,
+                image: park.image,
+                size: park.sizePercentage
+            }).then(ref => {
+                console.log('Added document with ID: ', ref.id);
+                return res.status(200).send();
+            }).catch(err => {
+                console.log("Failed to add park", err);
+                return res.status(500).send(err);
+            });
+        }
+        else {
+            console.log("Failed caclculate depth");
+        }
+
+
+
+
+
+
+    //     ls.stdout.on('data', (data) => {
+    //        fs.unlinkSync(imagePath); // remove image
+
+    //         console.log(`stdout: ${data}`);
+            
+    //         let parkDistColorFactor = Number(data);
+    //         if (parkDistColorFactor != -1) {
+    //             let parkDistance = parkDistColorFactor * 51; // Baseline 0.51 cm
+    //             console.log("Dist:", parkDistance,"park.sizePercentage", park.sizePercentage);
+    //             park.sizePercentage *= CMtoMM(parkDistance);
+    //             console.log("Python finish size:", park.sizePercentage);
+
+    //             // Add park to db
+    //             db.collection(MAIN_COLLECTION).doc(park.country).collection(park.city).doc().set({
+    //                 date: admin.firestore.Timestamp.now(),
+    //                 geom: new admin.firestore.GeoPoint(park.geom.latitude(), park.geom.longitude()),
+    //                 id: park.userId,
+    //                 image: park.image,
+    //                 size: park.sizePercentage
+    //             }).then(ref => {
+    //                 console.log('Added document with ID: ', ref.id);
+    //                 return res.status(200).send();
+    //             }).catch(err => {
+    //                 console.log("Failed to add park", err);
+    //                 return res.status(500).send(err);
+    //             });
+    //         }
+    //         else {
+    //             console.log("Failed caclculate depth");
+    //         }
+    //     });
       
 
-        ls.stderr.on('data', (data) => {
-            console.log(`stderr: ${data}`);
-        });
+    //     ls.stderr.on('data', (data) => {
+    //         console.log(`stderr: ${data}`);
+    //     });
 
 
-        ls.on('close', (code) => {
-            console.log(`child process exited with code ${code}`);
-        });
+    //     ls.on('close', (code) => {
+    //         console.log(`child process exited with code ${code}`);
+    //     });
+    });
+}
+
+exports.postRemovePark = (req, res, next) => {
+    console.log("Entered postRemovePark");
+    const park = new parkModel(req.body);
+
+    isParkInDb(park, (doc) => {
+        if (doc) {
+            console.log("removing parking...");
+            doc.ref.delete();
+            console.log("Done. Park removed");   
+            return res.status(200).send(); // Park removed.
+        }
+
+        console.log("Done. No parking available");
+        return res.status(202).send();
     });
 }
 
